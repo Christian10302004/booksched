@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "549768764076",
+    "firebase_url": "https://booksched-default-rtdb.firebaseio.com",
+    "project_id": "booksched",
+    "storage_bucket": "booksched.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:549768764076:android:1ccf5e4a9670987db0dd09",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASQDLvPFN4FgGSytS_Sbs2ndCXIr3vkU4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
