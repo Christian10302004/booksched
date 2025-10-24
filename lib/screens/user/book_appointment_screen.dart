@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
@@ -43,10 +44,13 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   void _bookAppointment() async {
-    if (_selectedService == null || _selectedDate == null || _selectedTime == null) {
+    if (_selectedService == null ||
+        _selectedDate == null ||
+        _selectedTime == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a service, date, and time.')),
+        const SnackBar(
+            content: Text('Please select a service, date, and time.')),
       );
       return;
     }
@@ -55,7 +59,8 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
     if (user == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to book an appointment.')),
+        const SnackBar(
+            content: Text('You must be logged in to book an appointment.')),
       );
       return;
     }
@@ -82,7 +87,7 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
       );
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      context.go('/appointments');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,6 +101,11 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book an Appointment'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+          tooltip: 'Back',
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

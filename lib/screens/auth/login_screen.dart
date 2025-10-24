@@ -57,20 +57,60 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-            TextField(controller: passwordController, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isLoading ? null : loginUser,
-              child: isLoading ? const CircularProgressIndicator() : const Text('Login'),
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/images/my_bg.png"),
+                fit: BoxFit.cover,
+              ),
             ),
-          ],
-        ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(128),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                        controller: emailController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                            labelText: 'Email',
+                            labelStyle: TextStyle(color: Colors.white))),
+                    TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                            labelText: 'Password',
+                            labelStyle: TextStyle(color: Colors.white))),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: isLoading ? null : loginUser,
+                      child: isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('Login'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => context.go('/register'),
+                      child: const Text("Don't have an account? Register",
+                          style: TextStyle(color: Colors.white)),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

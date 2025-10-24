@@ -14,6 +14,10 @@ class HomeScreen extends StatelessWidget {
         title: const Text('BookSched Dashboard'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () => context.go('/profile'),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await auth.signOut();

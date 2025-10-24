@@ -47,43 +47,78 @@ class AppointmentManagementScreen extends StatelessWidget {
                   final userData = userSnapshot.data!.data() as Map<String, dynamic>;
                   final appointmentDate = (appointmentData['dateTime'] as Timestamp).toDate();
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    child: ListTile(
-                      title: Text(userData['email'] ?? 'No email'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Date: ${appointmentDate.toLocal()}'.split(' ')[0]),
-                          Text('Time: ${TimeOfDay.fromDateTime(appointmentDate).format(context)}'),
-                          Text('Status: ${appointmentData['status']}'),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (appointmentData['status'] == 'pending')
-                            IconButton(
-                              icon: const Icon(Icons.check, color: Colors.green),
-                              onPressed: () {
-                                FirebaseFirestore.instance
-                                    .collection('appointments')
-                                    .doc(appointment.id)
-                                    .update({'status': 'approved'});
-                              },
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              FirebaseFirestore.instance
-                                  .collection('appointments')
-                                  .doc(appointment.id)
-                                  .delete();
-                            },
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('services')
+                        .doc(appointmentData['serviceId'])
+                        .get(),
+                    builder: (context, serviceSnapshot) {
+                      if (!serviceSnapshot.hasData) {
+                        return const ListTile(title: Text('Loading...'));
+                      }
+
+                      final serviceData = serviceSnapshot.data!.data() as Map<String, dynamic>;
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        child: ListTile(
+                          title: Text(userData['email'] ?? 'No email'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Service: ${serviceData['name'] ?? 'N/A'}'),
+                              Text('Date: ${appointmentDate.toLocal()}'.split(' ')[0]),
+                              Text('Time: ${TimeOfDay.fromDateTime(appointmentDate).format(context)}'),
+                              Text(
+                                'Status: ${appointmentData['status']}',
+                                style: TextStyle(
+                                  color: appointmentData['status'] == 'approved'
+                                      ? Colors.green
+                                      : (appointmentData['status'] == 'pending'
+                                          ? Colors.orange
+                                          : Colors.red),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (appointmentData['status'] == 'pending') ...[
+                                IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () {
+                                    FirebaseFirestore.instance
+                                        .collection('appointments')
+                                        .doc(appointment.id)
+                                        .update({'status': 'approved'});
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () {
+                                    FirebaseFirestore.instance
+                                        .collection('appointments')
+                                        .doc(appointment.id)
+                                        .update({'status': 'denied'});
+                                  },
+                                ),
+                              ],
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () {
+                                  FirebaseFirestore.instance
+                                      .collection('appointments')
+                                      .doc(appointment.id)
+                                      .delete();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );

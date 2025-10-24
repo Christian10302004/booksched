@@ -1,157 +1,146 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:myapp/main.dart';
-import 'package:myapp/screens/admin/widgets/appointment_pie_chart.dart';
-import 'package:myapp/screens/admin/widgets/summary_card.dart';
-import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:myapp/services/auth_service.dart';
+import 'package:myapp/widgets/appointment_pie_chart.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
 
+  Future<void> _showLogoutConfirmationDialog(BuildContext context, AuthService authService) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must choose an action
+      builder: (BuildContext dialogContext) {
+        bool isLoggingOut = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Confirm Logout'),
+              content: isLoggingOut
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 24),
+                        Text('Logging out...'),
+                      ],
+                    )
+                  : const Text('Are you sure you want to log out?'),
+              actions: isLoggingOut
+                  ? [] // Hide actions while logging out
+                  : <Widget>[
+                      TextButton(
+                        child: const Text('Cancel'),
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop(); // Close the dialog
+                        },
+                      ),
+                      TextButton(
+                        child: const Text('Logout'),
+                        onPressed: () async {
+                          setState(() {
+                            isLoggingOut = true;
+                          });
+                          try {
+                            await authService.signOut();
+                            if (dialogContext.mounted) {
+                              // Use root navigator to avoid issues with context
+                              Navigator.of(dialogContext, rootNavigator: true).pop();
+                              GoRouter.of(context).go('/login');
+                            }
+                          } catch (e) {
+                            // Handle error, maybe show a snackbar
+                            setState(() {
+                              isLoggingOut = false;
+                            });
+                            // Optionally show an error message
+                          }
+                        },
+                      ),
+                    ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
     final AuthService authService = AuthService();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: Icon(themeProvider.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () => themeProvider.toggleTheme(),
-            tooltip: 'Toggle Theme',
-          ),
-          IconButton(
-            icon: const Icon(Icons.auto_mode),
-            onPressed: () => themeProvider.setSystemTheme(),
-            tooltip: 'Set System Theme',
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authService.signOut();
-              if (context.mounted) {
-                context.go('/');
-              }
-            },
+            onPressed: () => _showLogoutConfirmationDialog(context, authService),
+            tooltip: 'Logout',
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('appointments').snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          int totalAppointments = snapshot.data!.docs.length;
-          int approvedAppointments = 0;
-          int pendingAppointments = 0;
-
-          for (var doc in snapshot.data!.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final status = data['status'] as String? ?? 'pending';
-            if (status == 'approved') {
-              approvedAppointments++;
-            } else {
-              pendingAppointments++;
-            }
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Card(
+                elevation: 4,
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    height: 300,
+                    child: AppointmentPieChart(),
+                  ),
+                ),
+              ),
+            ),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              padding: const EdgeInsets.all(16.0),
               children: <Widget>[
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    SummaryCard(
-                      title: 'Total Appointments',
-                      count: totalAppointments.toString(),
-                      icon: Icons.calendar_today,
-                      color: Colors.blue,
-                    ),
-                    SummaryCard(
-                      title: 'Approved',
-                      count: approvedAppointments.toString(),
-                      icon: Icons.check_circle,
-                      color: Colors.green,
-                    ),
-                    SummaryCard(
-                      title: 'Pending',
-                      count: pendingAppointments.toString(),
-                      icon: Icons.hourglass_bottom,
-                      color: Colors.amber,
-                    ),
-                  ],
+                _buildDashboardCard(
+                  context,
+                  'Manage Services',
+                  Icons.build,
+                  () => context.go('/admin/services'),
                 ),
-                const SizedBox(height: 24.0),
-                Text(
-                  'Management',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                _buildDashboardCard(
+                  context,
+                  'Manage Appointments',
+                  Icons.calendar_today,
+                  () => context.go('/admin/appointments'),
                 ),
-                const SizedBox(height: 16.0),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16.0,
-                  crossAxisSpacing: 16.0,
-                  children: <Widget>[
-                    _buildDashboardCard(
-                      context,
-                      icon: Icons.calendar_today,
-                      title: 'Manage Appointments',
-                      onTap: () => context.go('/admin/appointments'),
-                    ),
-                    _buildDashboardCard(
-                      context,
-                      icon: Icons.miscellaneous_services,
-                      title: 'Manage Services',
-                      onTap: () => context.go('/admin/services'),
-                    ),
-                    _buildDashboardCard(
-                      context,
-                      icon: Icons.bar_chart,
-                      title: 'View Reports',
-                      onTap: () => context.go('/admin/reports'),
-                    ),
-                  ],
+                _buildDashboardCard(
+                  context,
+                  'View Reports',
+                  Icons.bar_chart,
+                  () => context.go('/admin/reports'),
                 ),
-                const SizedBox(height: 24.0),
-                const AppointmentPieChart(),
               ],
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDashboardCard(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildDashboardCard(
+      BuildContext context, String title, IconData icon, VoidCallback onTap) {
     return Card(
-      elevation: 4.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      margin: const EdgeInsets.all(8.0),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Icon(icon, size: 50.0, color: Theme.of(context).primaryColor),
             const SizedBox(height: 10.0),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
+            Text(title, textAlign: TextAlign.center),
           ],
         ),
       ),

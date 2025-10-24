@@ -88,6 +88,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ? const CircularProgressIndicator()
                           : const Text("Register"),
                     ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      child: const Text("Already have an account? Login",
+                          style: TextStyle(color: Colors.white)),
+                    )
                   ],
                 ),
               ),

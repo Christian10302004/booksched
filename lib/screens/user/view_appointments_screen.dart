@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 
-class ViewAppointmentsScreen extends StatelessWidget {
+class ViewAppointmentsScreen extends StatefulWidget {
   const ViewAppointmentsScreen({super.key});
 
+  @override
+  State<ViewAppointmentsScreen> createState() => _ViewAppointmentsScreenState();
+}
+
+class _ViewAppointmentsScreenState extends State<ViewAppointmentsScreen> {
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('My Appointments')),
+        appBar: AppBar(
+          title: const Text('My Appointments'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/home'),
+            tooltip: 'Back',
+          ),
+        ),
         body: const Center(
           child: Text('Please log in to see your appointments.'),
         ),
@@ -21,13 +34,18 @@ class ViewAppointmentsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Appointments'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+          tooltip: 'Back',
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('appointments')
             .where('userId', isEqualTo: user.uid)
             .snapshots(),
-        builder: (context, snapshot) {
+        builder: (streamContext, snapshot) {
           if (snapshot.hasError) {
             return const Center(child: Text('Something went wrong'));
           }
@@ -45,7 +63,7 @@ class ViewAppointmentsScreen extends StatelessWidget {
 
           return ListView.builder(
             itemCount: appointments.length,
-            itemBuilder: (context, index) {
+            itemBuilder: (listContext, index) {
               final appointment = appointments[index];
               final appointmentData = appointment.data() as Map<String, dynamic>;
 
@@ -54,34 +72,42 @@ class ViewAppointmentsScreen extends StatelessWidget {
                     .collection('services')
                     .doc(appointmentData['serviceId'])
                     .get(),
-                builder: (context, serviceSnapshot) {
+                builder: (futureContext, serviceSnapshot) {
                   if (!serviceSnapshot.hasData) {
                     return const ListTile(title: Text('Loading...'));
                   }
 
-                  final serviceData = serviceSnapshot.data!.data() as Map<String, dynamic>;
-                  final appointmentDate = (appointmentData['dateTime'] as Timestamp).toDate();
+                  final serviceData =
+                      serviceSnapshot.data!.data() as Map<String, dynamic>;
+                  final appointmentDate =
+                      (appointmentData['dateTime'] as Timestamp).toDate();
 
                   return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: ListTile(
                       title: Text(serviceData['name'] ?? 'N/A'),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Date: ${appointmentDate.toLocal()}'.split(' ')[0]),
-                          Text('Time: ${TimeOfDay.fromDateTime(appointmentDate).format(context)}'),
+                          Text(
+                              'Date: ${appointmentDate.toLocal()}'.split(' ')[0]),
+                          Text(
+                              'Time: ${TimeOfDay.fromDateTime(appointmentDate).format(listContext)}'),
                           Text(
                             'Status: ${appointmentData['status']}',
                             style: TextStyle(
                               color: appointmentData['status'] == 'approved'
                                   ? Colors.green
-                                  : Colors.orange,
+                                  : (appointmentData['status'] == 'pending'
+                                      ? Colors.orange
+                                      : Colors.red),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
+                      trailing: _EditAppointmentButton(appointment: appointment),
                     ),
                   );
                 },
@@ -90,6 +116,71 @@ class ViewAppointmentsScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _EditAppointmentButton extends StatefulWidget {
+  final DocumentSnapshot appointment;
+
+  const _EditAppointmentButton({required this.appointment});
+
+  @override
+  _EditAppointmentButtonState createState() => _EditAppointmentButtonState();
+}
+
+class _EditAppointmentButtonState extends State<_EditAppointmentButton> {
+  Future<void> _handleEditAppointment() async {
+    final appointmentData = widget.appointment.data() as Map<String, dynamic>;
+    final currentDateTime = (appointmentData['dateTime'] as Timestamp).toDate();
+
+    if (!mounted) return;
+    DateTime? newDate = await showDatePicker(
+      context: context,
+      initialDate: currentDateTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (newDate == null) return;
+
+    if (!mounted) return;
+    TimeOfDay? newTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(currentDateTime),
+    );
+
+    if (newTime == null) return;
+
+    final newDateTime = DateTime(
+      newDate.year,
+      newDate.month,
+      newDate.day,
+      newTime.hour,
+      newTime.minute,
+    );
+
+    await FirebaseFirestore.instance
+        .collection('appointments')
+        .doc(widget.appointment.id)
+        .update({
+      'dateTime': Timestamp.fromDate(newDateTime),
+      'status': 'pending',
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Appointment updated and is pending approval.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.edit),
+      onPressed: _handleEditAppointment,
     );
   }
 }

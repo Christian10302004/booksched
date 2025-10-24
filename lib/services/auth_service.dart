@@ -13,6 +13,10 @@ class AuthService {
           email: email, password: password);
 
       if (cred.user != null) {
+        // Update the user's profile with the name
+        await cred.user!.updateDisplayName(name);
+
+        // Save user data to Firestore
         await _firestore.collection('users').doc(cred.user!.uid).set({
           'name': name,
           'email': email,
