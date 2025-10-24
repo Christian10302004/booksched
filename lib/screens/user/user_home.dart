@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/screens/user/book_appointment_screen.dart';
-import 'package:myapp/screens/user/view_appointment_screen.dart';
+import 'package:myapp/screens/user/view_appointments_screen.dart';
 import 'package:myapp/services/auth_service.dart';
 
 class UserHomeScreen extends StatelessWidget {
@@ -17,9 +18,9 @@ class UserHomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await _auth.logoutUser();
+              await _auth.signOut();
               if (!context.mounted) return;
-              Navigator.pushReplacementNamed(context, '/login');
+              context.go('/');
             },
           )
         ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/screens/user/book_appointment_screen.dart';
-import 'package:myapp/screens/user/view_appointments_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,9 +16,9 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await auth.logoutUser();
+              await auth.signOut();
               if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                context.go('/');
               }
             },
           ),
@@ -39,23 +38,13 @@ class HomeScreen extends StatelessWidget {
               ElevatedButton.icon(
                 icon: const Icon(Icons.add_circle_outline),
                 label: const Text('Book Appointment'),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const BookAppointmentScreen()),
-                  );
-                },
+                onPressed: () => context.go('/book'),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 icon: const Icon(Icons.calendar_month),
                 label: const Text('View Appointments'),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ViewAppointmentsScreen()),
-                  );
-                },
+                onPressed: () => context.go('/appointments'),
               ),
             ],
           ),

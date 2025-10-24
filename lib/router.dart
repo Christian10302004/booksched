@@ -1,14 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:myapp/screens/admin/manage_services_screen.dart';
+import 'package:myapp/screens/user/book_appointment_screen.dart';
+import 'package:myapp/screens/user/view_appointments_screen.dart';
 import 'screens/auth/landing_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
-import 'screens/admin/appointments/appointment_management_screen.dart';
-import 'screens/admin/services/service_management_screen.dart';
-import 'screens/admin/reports/reports_screen.dart';
+import 'screens/admin/appointment_management_screen.dart';
+import 'screens/admin/reports_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/',
@@ -30,6 +32,14 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const HomeScreen(),
     ),
     GoRoute(
+      path: '/book',
+      builder: (context, state) => const BookAppointmentScreen(),
+    ),
+    GoRoute(
+      path: '/appointments',
+      builder: (context, state) => const ViewAppointmentsScreen(),
+    ),
+    GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminHomeScreen(),
         routes: [
@@ -40,7 +50,7 @@ final GoRouter router = GoRouter(
           ),
           GoRoute(
             path: 'services',
-            builder: (context, state) => const ServiceManagementScreen(),
+            builder: (context, state) => const ManageServicesScreen(),
           ),
           GoRoute(
             path: 'reports',
@@ -51,13 +61,13 @@ final GoRouter router = GoRouter(
   redirect: (context, state) async {
     final user = FirebaseAuth.instance.currentUser;
     final isGoingToAdmin = state.matchedLocation.startsWith('/admin');
+    final isGoingToBook = state.matchedLocation == '/book';
+    final isGoingToAppointments = state.matchedLocation == '/appointments';
 
-    // If user is not logged in and tries to access a protected route
-    if (user == null && isGoingToAdmin) {
+    if (user == null && (isGoingToAdmin || isGoingToBook || isGoingToAppointments)) {
       return '/login'; // Redirect to login
     }
 
-    // If user is logged in and tries to access admin route
     if (user != null && isGoingToAdmin) {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')

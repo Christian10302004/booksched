@@ -1,32 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class ViewAppointmentsScreen extends StatelessWidget {
-  const ViewAppointmentsScreen({super.key});
+class AppointmentManagementScreen extends StatelessWidget {
+  const AppointmentManagementScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final User? user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('My Appointments')),
-        body: const Center(
-          child: Text('Please log in to see your appointments.'),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Appointments'),
+        title: const Text('Manage Appointments'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('appointments')
-            .where('userId', isEqualTo: user.uid)
-            .snapshots(),
+        stream: FirebaseFirestore.instance.collection('appointments').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Center(child: Text('Something went wrong'));
@@ -39,7 +24,7 @@ class ViewAppointmentsScreen extends StatelessWidget {
 
           if (appointments.isEmpty) {
             return const Center(
-              child: Text('You have no appointments.'),
+              child: Text('No appointments found.'),
             );
           }
 
@@ -51,34 +36,50 @@ class ViewAppointmentsScreen extends StatelessWidget {
 
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance
-                    .collection('services')
-                    .doc(appointmentData['serviceId'])
+                    .collection('users')
+                    .doc(appointmentData['userId'])
                     .get(),
-                builder: (context, serviceSnapshot) {
-                  if (!serviceSnapshot.hasData) {
+                builder: (context, userSnapshot) {
+                  if (!userSnapshot.hasData) {
                     return const ListTile(title: Text('Loading...'));
                   }
 
-                  final serviceData = serviceSnapshot.data!.data() as Map<String, dynamic>;
+                  final userData = userSnapshot.data!.data() as Map<String, dynamic>;
                   final appointmentDate = (appointmentData['dateTime'] as Timestamp).toDate();
 
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: ListTile(
-                      title: Text(serviceData['name'] ?? 'N/A'),
+                      title: Text(userData['email'] ?? 'No email'),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Date: ${appointmentDate.toLocal()}'.split(' ')[0]),
                           Text('Time: ${TimeOfDay.fromDateTime(appointmentDate).format(context)}'),
-                          Text(
-                            'Status: ${appointmentData['status']}',
-                            style: TextStyle(
-                              color: appointmentData['status'] == 'approved'
-                                  ? Colors.green
-                                  : Colors.orange,
-                              fontWeight: FontWeight.bold,
+                          Text('Status: ${appointmentData['status']}'),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (appointmentData['status'] == 'pending')
+                            IconButton(
+                              icon: const Icon(Icons.check, color: Colors.green),
+                              onPressed: () {
+                                FirebaseFirestore.instance
+                                    .collection('appointments')
+                                    .doc(appointment.id)
+                                    .update({'status': 'approved'});
+                              },
                             ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              FirebaseFirestore.instance
+                                  .collection('appointments')
+                                  .doc(appointment.id)
+                                  .delete();
+                            },
                           ),
                         ],
                       ),
