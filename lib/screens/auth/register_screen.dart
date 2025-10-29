@@ -1,6 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:myapp/services/auth_service.dart';
+import 'package:provider/provider.dart';
+
+import '../../services/auth/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,96 +13,140 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _name = TextEditingController();
-  final TextEditingController _email = TextEditingController();
-  final TextEditingController _password = TextEditingController();
-  final AuthService _auth = AuthService();
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-  final String _role = 'user'; // Default role is always user
-  bool _loading = false;
-
-  void register() async {
-    setState(() => _loading = true);
-    String? res = await _auth.registerUser(
-        _email.text.trim(), _password.text.trim(), _name.text.trim(), _role);
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-
-    if (res == "success") {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Registration successful!")));
-      context.go('/home');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res ?? "An unknown error occurred")));
+  void _register() {
+    if (_formKey.currentState!.validate()) {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      authService.register(
+        _emailController.text,
+        _passwordController.text,
+        _nameController.text,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Register")),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/my_bg.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primary.withAlpha(26),
+              Theme.of(context).colorScheme.secondary.withAlpha(26),
+            ],
           ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(128),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                        controller: _name,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                            labelText: "Full Name",
-                            labelStyle: TextStyle(color: Colors.white))),
-                    TextField(
-                        controller: _email,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                            labelText: "Email",
-                            labelStyle: TextStyle(color: Colors.white))),
-                    TextField(
-                        controller: _password,
-                        obscureText: true,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                            labelText: "Password",
-                            labelStyle: TextStyle(color: Colors.white))),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _loading ? null : register,
-                      child: _loading
-                          ? const CircularProgressIndicator()
-                          : const Text("Register"),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 100,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.business,
+                        size: 80,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Create an Account',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Full Name'),
+                    validator: (value) =>
+                        value!.isEmpty ? 'Please enter your name' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Please enter your email' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return 'Please enter a password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters long';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  if (authService.isLoading)
+                    const CircularProgressIndicator()
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _register,
+                        child: const Text('Register'),
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () => context.go('/login'),
-                      child: const Text("Already have an account? Login",
-                          style: TextStyle(color: Colors.white)),
-                    )
-                  ],
-                ),
+                  if (authService.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Text(
+                        authService.errorMessage!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  RichText(
+                    text: TextSpan(
+                      text: 'Already have an account? ',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'Login',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => context.go('/login'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

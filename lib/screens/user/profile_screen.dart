@@ -133,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
+          onPressed: () => context.go('/user'),
           tooltip: 'Back',
         ),
         actions: [

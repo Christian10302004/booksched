@@ -1,65 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:myapp/services/auth_service.dart';
-import 'package:myapp/widgets/appointment_pie_chart.dart';
+import 'package:provider/provider.dart';
+
+import '../../services/auth/auth_service.dart';
+import '../../widgets/appointment_pie_chart.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
 
-  Future<void> _showLogoutConfirmationDialog(BuildContext context, AuthService authService) async {
+  Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // User must choose an action
       builder: (BuildContext dialogContext) {
-        bool isLoggingOut = false;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Confirm Logout'),
-              content: isLoggingOut
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(width: 24),
-                        Text('Logging out...'),
-                      ],
-                    )
-                  : const Text('Are you sure you want to log out?'),
-              actions: isLoggingOut
-                  ? [] // Hide actions while logging out
-                  : <Widget>[
-                      TextButton(
-                        child: const Text('Cancel'),
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop(); // Close the dialog
-                        },
-                      ),
-                      TextButton(
-                        child: const Text('Logout'),
-                        onPressed: () async {
-                          setState(() {
-                            isLoggingOut = true;
-                          });
-                          try {
-                            await authService.signOut();
-                            if (dialogContext.mounted) {
-                              // Use root navigator to avoid issues with context
-                              Navigator.of(dialogContext, rootNavigator: true).pop();
-                              GoRouter.of(context).go('/login');
-                            }
-                          } catch (e) {
-                            // Handle error, maybe show a snackbar
-                            setState(() {
-                              isLoggingOut = false;
-                            });
-                            // Optionally show an error message
-                          }
-                        },
-                      ),
-                    ],
-            );
-          },
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            TextButton(
+              child: const Text('Logout'),
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await authService.signOut();
+              },
+            ),
+          ],
         );
       },
     );
@@ -67,8 +37,6 @@ class AdminHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AuthService authService = AuthService();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
@@ -76,49 +44,54 @@ class AdminHomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutConfirmationDialog(context, authService),
+            onPressed: () => _showLogoutConfirmationDialog(context),
             tooltip: 'Logout',
           ),
         ],
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 4,
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    height: 300,
-                    child: AppointmentPieChart(),
-                  ),
+            const Text(
+              'Appointment Status',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: SizedBox(
+                  height: 300,
+                  child: AppointmentPieChart(),
                 ),
               ),
             ),
+            const SizedBox(height: 24),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              padding: const EdgeInsets.all(16.0),
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
               children: <Widget>[
                 _buildDashboardCard(
                   context,
                   'Manage Services',
-                  Icons.build,
+                  Icons.build_circle_outlined,
                   () => context.go('/admin/services'),
                 ),
                 _buildDashboardCard(
                   context,
                   'Manage Appointments',
-                  Icons.calendar_today,
+                  Icons.calendar_today_outlined,
                   () => context.go('/admin/appointments'),
                 ),
                 _buildDashboardCard(
                   context,
                   'View Reports',
-                  Icons.bar_chart,
+                  Icons.bar_chart_outlined,
                   () => context.go('/admin/reports'),
                 ),
               ],
@@ -130,17 +103,25 @@ class AdminHomeScreen extends StatelessWidget {
   }
 
   Widget _buildDashboardCard(
-      BuildContext context, String title, IconData icon, VoidCallback onTap) {
+    BuildContext context,
+    String title,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return Card(
-      margin: const EdgeInsets.all(8.0),
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Icon(icon, size: 50.0, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 10.0),
-            Text(title, textAlign: TextAlign.center),
+            const SizedBox(height: 16.0),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
+            ),
           ],
         ),
       ),

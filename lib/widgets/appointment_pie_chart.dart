@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
-
+// Trigger hot restart
 class AppointmentPieChart extends StatefulWidget {
   const AppointmentPieChart({super.key});
 
@@ -33,8 +33,13 @@ class _AppointmentPieChartState extends State<AppointmentPieChart> {
       };
 
       for (var doc in snapshot.docs) {
-        final status = doc.data()['status'] as String? ?? 'pending';
-        counts[status] = (counts[status] ?? 0) + 1;
+        String status = doc.data()['status'] as String? ?? 'pending';
+        if (status == 'denied') {
+          status = 'rejected'; // Combine 'denied' into 'rejected'
+        }
+        if (counts.containsKey(status)) {
+          counts[status] = (counts[status] ?? 0) + 1;
+        }
       }
 
       setState(() {
@@ -45,7 +50,12 @@ class _AppointmentPieChartState extends State<AppointmentPieChart> {
       setState(() {
         _isLoading = false;
       });
-      // Handle error, e.g., show a snackbar
+      // Optionally, show an error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching appointment data: $e')),
+        );
+      }
     }
   }
 
@@ -55,19 +65,25 @@ class _AppointmentPieChartState extends State<AppointmentPieChart> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final List<PieChartSectionData> sections = _statusCounts.entries.map((entry) {
+    final List<PieChartSectionData> sections = _statusCounts.entries
+        .where((entry) => entry.value > 0) // Only show sections with data
+        .map((entry) {
       return PieChartSectionData(
         color: _getColorForStatus(entry.key),
         value: entry.value,
         title: '${entry.value.toInt()}',
-        radius: 50.0,
+        radius: 80.0,
         titleStyle: const TextStyle(
           fontSize: 16.0,
           fontWeight: FontWeight.bold,
-          color: Color(0xffffffff),
+          color: Colors.white,
         ),
       );
     }).toList();
+
+    if (sections.isEmpty) {
+      return const Center(child: Text('No appointment data available.'));
+    }
 
     return Column(
       children: [
@@ -81,28 +97,28 @@ class _AppointmentPieChartState extends State<AppointmentPieChart> {
             PieChartData(
               sections: sections,
               borderData: FlBorderData(show: false),
-              sectionsSpace: 0,
+              sectionsSpace: 2,
               centerSpaceRadius: 40,
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(height: 20),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16.0,
+          runSpacing: 8.0,
           children: _statusCounts.keys.map((status) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 16,
-                    height: 16,
-                    color: _getColorForStatus(status),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(status.toUpperCase()),
-                ],
-              ),
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  color: _getColorForStatus(status),
+                ),
+                const SizedBox(width: 8),
+                Text(status.toUpperCase()),
+              ],
             );
           }).toList(),
         ),

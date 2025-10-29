@@ -1,7 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../../services/auth/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,106 +13,124 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  bool isLoading = false;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
-  Future<void> loginUser() async {
-    setState(() => isLoading = true);
-
-    try {
-      // Sign in using Firebase Auth
-      UserCredential userCred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+  void _login() {
+    if (_formKey.currentState!.validate()) {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      authService.signIn(
+        _emailController.text,
+        _passwordController.text,
       );
-
-      // Get user role from Firestore
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCred.user!.uid)
-          .get();
-
-      if (!mounted) return;
-
-      String role = userDoc['role'] ?? 'user';
-
-      // Redirect based on role
-      if (role == 'admin') {
-        context.go('/admin');
-      } else {
-        context.go('/home');
-      }
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Login failed')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/my_bg.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primary.withAlpha(26),
+              Theme.of(context).colorScheme.secondary.withAlpha(26),
+            ],
           ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(128),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                        controller: emailController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                            labelText: 'Email',
-                            labelStyle: TextStyle(color: Colors.white))),
-                    TextField(
-                        controller: passwordController,
-                        obscureText: true,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                            labelText: 'Password',
-                            labelStyle: TextStyle(color: Colors.white))),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: isLoading ? null : loginUser,
-                      child: isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Login'),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 100,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.business,
+                        size: 80,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Welcome Back!',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Please enter your email' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                    obscureText: true,
+                    validator: (value) =>
+                        value!.isEmpty ? 'Please enter your password' : null,
+                  ),
+                  const SizedBox(height: 32),
+                  if (authService.isLoading)
+                    const CircularProgressIndicator()
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _login,
+                        child: const Text('Login'),
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () => context.go('/register'),
-                      child: const Text("Don't have an account? Register",
-                          style: TextStyle(color: Colors.white)),
-                    )
-                  ],
-                ),
+                  if (authService.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Text(
+                        authService.errorMessage!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  RichText(
+                    text: TextSpan(
+                      text: "Don't have an account? ",
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'Register',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () => context.go('/register'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

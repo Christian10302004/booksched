@@ -1,28 +1,111 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../models/service_model.dart';
+import '../../providers/appointment_provider.dart';
+import '../../providers/service_provider.dart';
+import '../../models/appointment_model.dart';
+import '../../services/auth/auth_service.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   const BookAppointmentScreen({super.key});
 
   @override
-  BookAppointmentScreenState createState() => BookAppointmentScreenState();
+  State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
 }
 
-class BookAppointmentScreenState extends State<BookAppointmentScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  String? _selectedService;
+class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
+  Service? _selectedService;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
 
-  Future<void> _selectDate(BuildContext context) async {
+  @override
+  Widget build(BuildContext context) {
+    final serviceProvider = Provider.of<ServiceProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Book an Appointment'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/user'),
+          tooltip: 'Back',
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: StreamBuilder<List<Service>>(
+          stream: serviceProvider.services,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Something went wrong'));
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final services = snapshot.data ?? [];
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (services.isNotEmpty)
+                  DropdownButtonFormField<Service>(
+                    initialValue: _selectedService,
+                    onChanged: (Service? newValue) {
+                      setState(() {
+                        _selectedService = newValue;
+                      });
+                    },
+                    items: services.map((Service service) {
+                      return DropdownMenuItem<Service>(
+                        value: service,
+                        child: Text(service.name),
+                      );
+                    }).toList(),
+                    decoration: const InputDecoration(
+                      labelText: 'Select a Service',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                ListTile(
+                  title: Text(_selectedDate == null
+                      ? 'No date selected'
+                      : 'Selected Date: ${_selectedDate!.toLocal()}'.split(' ')[0]),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: _pickDate,
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  title: Text(_selectedTime == null
+                      ? 'No time selected'
+                      : 'Selected Time: ${_selectedTime!.format(context)}'),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: _pickTime,
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: _bookAppointment,
+                    child: const Text('Confirm Appointment'),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -31,7 +114,7 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
     }
   }
 
-  Future<void> _selectTime(BuildContext context) async {
+  Future<void> _pickTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
@@ -44,28 +127,20 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   void _bookAppointment() async {
-    if (_selectedService == null ||
-        _selectedDate == null ||
-        _selectedTime == null) {
-      if (!mounted) return;
+    if (!mounted) return;
+    if (_selectedService == null || _selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Please select a service, date, and time.')),
+          content: Text('Please select a service, date, and time.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    final User? user = _auth.currentUser;
-    if (user == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('You must be logged in to book an appointment.')),
-      );
-      return;
-    }
-
-    final DateTime finalDateTime = DateTime(
+    final user = Provider.of<AuthService>(context, listen: false).user!;
+    
+    final appointmentDateTime = DateTime(
       _selectedDate!.year,
       _selectedDate!.month,
       _selectedDate!.day,
@@ -73,96 +148,35 @@ class BookAppointmentScreenState extends State<BookAppointmentScreen> {
       _selectedTime!.minute,
     );
 
+    final appointment = Appointment(
+      id: '', // Firestore will generate this
+      userId: user.uid,
+      userName: user.displayName ?? user.email!,
+      serviceId: _selectedService!.id,
+      serviceName: _selectedService!.name,
+      date: appointmentDateTime,
+      status: 'pending',
+    );
+
     try {
-      await _firestore.collection('appointments').add({
-        'userId': user.uid,
-        'serviceId': _selectedService,
-        'dateTime': finalDateTime,
-        'status': 'pending',
-      });
-
+      await Provider.of<AppointmentProvider>(context, listen: false)
+          .addAppointment(appointment);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment booked successfully!')),
+        const SnackBar(
+          content: Text('Appointment booked successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
-
-      if (!mounted) return;
-      context.go('/appointments');
-    } catch (e) {
+      context.go('/user/appointments');
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to book appointment: $e')),
+        SnackBar(
+          content: Text('Failed to book appointment: $error'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book an Appointment'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
-          tooltip: 'Back',
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('services').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
-                }
-
-                var services = snapshot.data!.docs.map((doc) {
-                  return DropdownMenuItem(
-                    value: doc.id,
-                    child: Text(doc['name']),
-                  );
-                }).toList();
-
-                return DropdownButtonFormField<String>(
-                  hint: const Text('Select a Service'),
-                  items: services,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedService = value;
-                    });
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              title: Text(_selectedDate == null
-                  ? 'Select a Date'
-                  : 'Date: ${_selectedDate!.toLocal()}'.split(' ')[0]),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () => _selectDate(context),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              title: Text(_selectedTime == null
-                  ? 'Select a Time'
-                  : 'Time: ${_selectedTime!.format(context)}'),
-              trailing: const Icon(Icons.access_time),
-              onTap: () => _selectTime(context),
-            ),
-            const SizedBox(height: 40),
-            Center(
-              child: ElevatedButton(
-                onPressed: _bookAppointment,
-                child: const Text('Book Appointment'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
