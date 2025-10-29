@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../services/auth/auth_service.dart';
+import 'upcoming_appointments.dart';
 
 class UserHomeScreen extends StatelessWidget {
   const UserHomeScreen({super.key});
@@ -175,7 +176,7 @@ class UserHomeScreen extends StatelessWidget {
             onTap: () => context.go('/user/appointments'),
           ),
           const SizedBox(height: 24),
-          _buildUpcomingAppointmentsCard(context),
+          const UpcomingAppointments(),
         ],
       ),
     );
@@ -208,46 +209,6 @@ class UserHomeScreen extends StatelessWidget {
             ),
             const Spacer(),
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUpcomingAppointmentsCard(BuildContext context) {
-    // This is a placeholder. In a real app, you would fetch this data.
-    return Card(
-      elevation: 4,
-      shadowColor: Colors.black.withAlpha(50),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Upcoming Appointments',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            // Placeholder content
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24.0),
-                child: Text(
-                  'You have no upcoming appointments.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => context.go('/user/appointments'),
-                child: const Text('View All'),
-              ),
-            )
           ],
         ),
       ),

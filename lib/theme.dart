@@ -57,17 +57,19 @@ final ThemeData darkTheme = ThemeData(
 );
 
 class ThemeProvider with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
+  // Default to light mode
+  ThemeMode _themeMode = ThemeMode.light;
 
   ThemeMode get themeMode => _themeMode;
 
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+  void setThemeMode(ThemeMode mode) {
+    // Ensure we don't set it to system
+    _themeMode = (mode == ThemeMode.system) ? ThemeMode.light : mode;
     notifyListeners();
   }
 
-  void setSystemTheme() {
-    _themeMode = ThemeMode.system;
+  void toggleTheme() {
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 }

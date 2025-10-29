@@ -55,26 +55,27 @@ class AdminHomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Appointment Status',
+              'Appointment Status Distribution',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            const Card(
-              child: Padding(
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  height: 300,
-                  child: AppointmentPieChart(),
-                ),
+                child: SizedBox(height: 250, child: AppointmentPieChart()),
               ),
             ),
             const SizedBox(height: 24),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+            const Text(
+              'Quick Actions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
               children: <Widget>[
                 _buildDashboardCard(
                   context,
@@ -82,12 +83,14 @@ class AdminHomeScreen extends StatelessWidget {
                   Icons.build_circle_outlined,
                   () => context.go('/admin/services'),
                 ),
+                const SizedBox(width: 16),
                 _buildDashboardCard(
                   context,
                   'Manage Appointments',
                   Icons.calendar_today_outlined,
                   () => context.go('/admin/appointments'),
                 ),
+                const SizedBox(width: 16),
                 _buildDashboardCard(
                   context,
                   'View Reports',
@@ -108,21 +111,30 @@ class AdminHomeScreen extends StatelessWidget {
     IconData icon,
     VoidCallback onTap,
   ) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(icon, size: 50.0, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 16.0),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
+    return Expanded(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, size: 40.0, color: Theme.of(context).primaryColor),
+                const SizedBox(height: 12.0),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontSize: 14),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

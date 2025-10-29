@@ -72,9 +72,9 @@ class _AppointmentPieChartState extends State<AppointmentPieChart> {
         color: _getColorForStatus(entry.key),
         value: entry.value,
         title: '${entry.value.toInt()}',
-        radius: 80.0,
+        radius: 60.0,
         titleStyle: const TextStyle(
-          fontSize: 16.0,
+          fontSize: 14.0,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -87,37 +87,32 @@ class _AppointmentPieChartState extends State<AppointmentPieChart> {
 
     return Column(
       children: [
-        const Text(
-          'Appointment Status Distribution',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
         Expanded(
           child: PieChart(
             PieChartData(
               sections: sections,
-              borderData: FlBorderData(show: false),
+              borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.withAlpha(128))),
               sectionsSpace: 2,
-              centerSpaceRadius: 40,
+              centerSpaceRadius: 30,
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 16.0,
+          spacing: 12.0,
           runSpacing: 8.0,
           children: _statusCounts.keys.map((status) {
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 16,
-                  height: 16,
+                  width: 12,
+                  height: 12,
                   color: _getColorForStatus(status),
                 ),
-                const SizedBox(width: 8),
-                Text(status.toUpperCase()),
+                const SizedBox(width: 6),
+                Text(status.toUpperCase(), style: const TextStyle(fontSize: 12)),
               ],
             );
           }).toList(),

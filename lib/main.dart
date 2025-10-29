@@ -14,11 +14,11 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(const MyAppWrapper());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyAppWrapper extends StatelessWidget {
+  const MyAppWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +29,34 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ServiceProvider()),
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return MaterialApp.router(
-            title: 'BookSched',
-            theme: lightTheme,
-            darkTheme: darkTheme,
-            themeMode: themeProvider.themeMode,
-            routerConfig: router,
-            debugShowCheckedModeBanner: false,
-          );
-        },
-      ),
+      child: const MyApp(),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final router = createRouter(authService);
+
+    // A user can change the theme if they are logged in and NOT the admin.
+    final isThemeSwitchable = authService.user != null && !authService.isAdmin;
+
+    final themeMode = isThemeSwitchable
+        ? themeProvider.themeMode
+        : ThemeMode.light;
+
+    return MaterialApp.router(
+      title: 'BookSched',
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

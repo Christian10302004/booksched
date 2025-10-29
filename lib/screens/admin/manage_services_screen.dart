@@ -40,7 +40,7 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
               ),
               TextField(
                 controller: priceController,
-                decoration: const InputDecoration(labelText: 'Price'),
+                decoration: const InputDecoration(labelText: 'Price', prefixText: '₱'),
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -122,7 +122,7 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
               return ListTile(
                 title: Text(service['name']),
                 subtitle: Text(
-                  '${service['description']} - \$${service['price']}',
+                  '${service['description']} - ₱${service['price']}',
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,

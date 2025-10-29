@@ -1,10 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:developer' as developer;
+import 'package:provider/provider.dart';
+import 'package:myapp/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,57 +13,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
-  File? _image;
-  String? _imageUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfileImage();
-  }
-
-  Future<void> _loadProfileImage() async {
-    if (user != null) {
-      try {
-        final ref = FirebaseStorage.instance.ref('profile_images/${user!.uid}');
-        final url = await ref.getDownloadURL();
-        setState(() {
-          _imageUrl = url;
-        });
-      } catch (e) {
-        // Handle errors, e.g., image does not exist
-        developer.log('Error loading profile image: $e', name: 'profile_screen');
-      }
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      _uploadImage();
-    }
-  }
-
-  Future<void> _uploadImage() async {
-    if (_image == null || user == null) return;
-
-    try {
-      final ref = FirebaseStorage.instance.ref('profile_images/${user!.uid}');
-      await ref.putFile(_image!);
-      final url = await ref.getDownloadURL();
-      setState(() {
-        _imageUrl = url;
-      });
-    } catch (e) {
-      // Handle errors
-      developer.log('Error uploading image: $e', name: 'profile_screen');
-    }
-  }
 
   Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
     return showDialog<void>(
@@ -128,6 +75,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -137,6 +86,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           tooltip: 'Back',
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => context.go('/user/edit_profile'),
+            tooltip: 'Edit Profile',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _showLogoutConfirmationDialog(context),
@@ -148,12 +102,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            CircleAvatar(
+            const CircleAvatar(
               radius: 50,
-              backgroundImage: _imageUrl != null ? NetworkImage(_imageUrl!) : null,
-              child: _imageUrl == null
-                  ? const Icon(Icons.person, size: 50)
-                  : null,
+              child: Icon(Icons.person, size: 50),
             ),
             const SizedBox(height: 10),
             Text(user?.displayName ?? 'No Name',
@@ -162,9 +113,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(user?.email ?? 'No Email',
                 style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _pickImage,
-              child: const Text('Upload Profile Picture'),
+            const Divider(),
+            ListTile(
+              title: const Text('Theme'),
+              trailing: DropdownButton<ThemeMode>(
+                value: themeProvider.themeMode,
+                items: const [
+                  DropdownMenuItem(
+                    value: ThemeMode.light,
+                    child: Text('Light'),
+                  ),
+                  DropdownMenuItem(
+                    value: ThemeMode.dark,
+                    child: Text('Dark'),
+                  ),
+                ],
+                onChanged: (ThemeMode? newMode) {
+                  if (newMode != null) {
+                    themeProvider.setThemeMode(newMode);
+                  }
+                },
+              ),
             ),
           ],
         ),
