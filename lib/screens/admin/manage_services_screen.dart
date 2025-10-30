@@ -15,11 +15,13 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
     final TextEditingController priceController = TextEditingController();
-
+    final TextEditingController kidController = TextEditingController();
+    
     if (service != null) {
       nameController.text = service['name'];
       descriptionController.text = service['description'];
       priceController.text = service['price'].toString();
+      kidController.text = service['kid'].toString();
     }
 
     showDialog(
@@ -43,6 +45,11 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
                 decoration: const InputDecoration(labelText: 'Price', prefixText: '₱'),
                 keyboardType: TextInputType.number,
               ),
+              TextField(
+                controller: kidController,
+                decoration: const InputDecoration(labelText: 'Kid Friendly'),
+                keyboardType: TextInputType.number,
+              ),
             ],
           ),
           actions: [
@@ -55,6 +62,8 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
                 final String name = nameController.text;
                 final String description = descriptionController.text;
                 final double? price = double.tryParse(priceController.text);
+                final int? kid = int.tryParse(kidController.text);
+
 
                 if (name.isNotEmpty && description.isNotEmpty && price != null) {
                   if (service == null) {
@@ -62,12 +71,14 @@ class _ManageServicesScreenState extends State<ManageServicesScreen> {
                       'name': name,
                       'description': description,
                       'price': price,
+                      'kid': kid,
                     });
                   } else {
                     await _firestore.collection('services').doc(service.id).update({
                       'name': name,
                       'description': description,
                       'price': price,
+                      'kid': kid,
                     });
                   }
                   if (!context.mounted) return;

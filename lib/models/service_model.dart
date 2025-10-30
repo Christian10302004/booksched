@@ -6,12 +6,14 @@ class Service extends Equatable {
   final String name;
   final String description;
   final double price;
+  final int kid;
 
   const Service({
     required this.id,
     required this.name,
     required this.description,
     required this.price,
+    required this.kid,
   });
 
   factory Service.fromFirestore(DocumentSnapshot doc) {
@@ -21,17 +23,14 @@ class Service extends Equatable {
       name: data['name'] ?? '',
       description: data['description'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
+      kid: (data['kid'] ?? 0).toInt(),
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'description': description,
-      'price': price,
-    };
+    return {'name': name, 'description': description, 'price': price, 'kid': kid};
   }
 
   @override
-  List<Object?> get props => [id, name, description, price];
+  List<Object?> get props => [id, name, description, price,kid];
 }

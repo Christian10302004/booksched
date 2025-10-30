@@ -86,6 +86,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   onTap: _pickTime,
                 ),
                 const SizedBox(height: 20),
+                ListTile(
+                  title: const Text('Input Age:'),
+                ),
+                const SizedBox(height: 20),
                 Center(
                   child: ElevatedButton(
                     onPressed: _bookAppointment,

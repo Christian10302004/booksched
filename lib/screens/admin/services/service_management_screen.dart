@@ -31,6 +31,8 @@ class ServiceManagementScreen extends StatelessWidget {
     final nameController = TextEditingController(text: service?.name ?? '');
     final descriptionController = TextEditingController(text: service?.description ?? '');
     final priceController = TextEditingController(text: service?.price.toString() ?? '');
+    final kidController = TextEditingController(text: service?.kid.toString() ?? '');
+
 
     showDialog(
       context: context,
@@ -84,13 +86,15 @@ class ServiceManagementScreen extends StatelessWidget {
                       name: nameController.text,
                       description: descriptionController.text,
                       price: double.parse(priceController.text),
-                    );
+                      kid: service.kid,
+                    );  
                     serviceProvider.updateService(updatedService);
                   } else {
                     serviceProvider.addService(
                       nameController.text,
                       descriptionController.text,
                       double.parse(priceController.text),
+                      int.parse(kidController.text)  
                     );
                   }
                   Navigator.pop(context);
